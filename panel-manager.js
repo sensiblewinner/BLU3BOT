@@ -124,3 +124,4 @@ export class PanelManager {
     return null;
   }
 }
+

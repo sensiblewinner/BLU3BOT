@@ -1,13 +1,13 @@
 // export default {
 //     ownerNumber: '254703397679',
 //     storeWriteInterval: 10000,
-//       updateZipUrl: "https://github.com/777Wolf-dot/wolf-bot/archive/refs/heads/main.zip"
+//       updateZipUrl: "https://github.com/777Wolf-dot/BLU3BOT/archive/refs/heads/main.zip"
 // }; 
 
 
 
 
-// settings.js - WolfBot Configuration
+// settings.js - BLU3BOT Configuration
 export default {
   // ===== UPDATE CONFIGURATION =====
   update: {
@@ -54,5 +54,6 @@ export default {
   // ... rest of your configuration
 }
 
-//I am Silent Wolf yeap that is my name
+//I am BLU3BOT yeap that is my name
 //git add --all :!node_modules :!package-lock.json :!*.log :!*.db
+
