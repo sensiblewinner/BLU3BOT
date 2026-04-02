@@ -1,0 +1,9 @@
+﻿node_modules/
+session/
+database/
+*.json
+.env
+config.js
+*.log
+.DS_Store
+temp_*
