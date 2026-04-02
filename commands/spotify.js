@@ -1,4 +1,6 @@
-// commands/spotify.js - UPDATED WITH YOUR EXACT APIS
+// commands/spotify.js
+const axios = require('axios');
+
 class Command {
     constructor(name, description, usage, category, execute) {
         this.name = name;
@@ -9,104 +11,91 @@ class Command {
     }
 }
 
-const axios = require('axios');
-
 module.exports = {
     command: new Command(
         'spotify',
-        'Search music information',
-        '.spotify [song name]',
-        'music',
+        'Get Spotify track info and thumbnail',
+        '.spotify [spotify url or track name]',
+        'download',
         async (reply, react, from, message, args, Blu3Bot, context) => {
             await react('🎵');
-            
-            const query = args.join(' ');
-            if (!query) {
-                await reply('Please provide a song name to search.');
+
+            const input = args.join(' ').trim();
+            if (!input) {
+                await reply('🎵 *Spotify Info*\n\nUsage: `.spotify [spotify url or track name]`\n\nExample:\n`.spotify https://open.spotify.com/track/abc`\n`.spotify Blinding Lights The Weeknd`');
                 return;
             }
 
-            // Using YOUR exact search API from the message
-            const searchApis = [
-                'https://api.erdwpe.com/api/search/google'
-            ];
+            await reply('⏳ Fetching Spotify info...');
 
-            await reply('🎵 *Searching for music...*');
+            try {
+                let spotifyUrl = input;
 
-            let success = false;
-
-            // Try the API
-            for (const apiUrl of searchApis) {
-                try {
-                    console.log(`Trying Search API: ${apiUrl}`);
-                    
-                    const response = await axios.get(`${apiUrl}?query=${encodeURIComponent(query + " song lyrics spotify")}`, {
-                        timeout: 10000,
+                if (!input.includes('spotify.com')) {
+                    // Search Spotify by track name using unofficial search
+                    const searchRes = await axios.get('https://api.spotify.com/v1/search', {
+                        params: { q: input, type: 'track', limit: 1 },
                         headers: {
-                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-                        }
-                    });
+                            Authorization: `Bearer ${await getSpotifyToken()}`
+                        },
+                        timeout: 10000
+                    }).catch(() => null);
 
-                    const data = response.data;
-
-                    // Handle YOUR specific API response format
-                    if (data.status && data.result) {
-                        // Find music-related results
-                        const musicResults = data.result.filter(item => 
-                            item.title.toLowerCase().includes('lyrics') || 
-                            item.title.toLowerCase().includes('spotify') ||
-                            item.title.toLowerCase().includes('song') ||
-                            item.description.toLowerCase().includes('music')
-                        );
-
-                        if (musicResults.length > 0) {
-                            const bestResult = musicResults[0];
-                            let musicInfo = `*🎵 Music Info: ${query}*\n\n`;
-                            
-                            musicResults.slice(0, 3).forEach((item, index) => {
-                                musicInfo += `*${index + 1}. ${item.title}*\n`;
-                                if (item.description) {
-                                    musicInfo += `${item.description.substring(0, 100)}...\n`;
-                                }
-                                musicInfo += '\n';
-                            });
-                            
-                            musicInfo += '*Try these commands:*\n• .play [song] - Play music\n• .shazam [description] - Find song\n• .yt [song] - YouTube search';
-                            
-                            await reply(musicInfo);
-                            success = true;
-                            break;
-                        }
-                    }
-                } catch (error) {
-                    console.log(`Search API failed: ${apiUrl} - ${error.message}`);
-                    // Continue to next API if there were more
-                }
-            }
-
-            if (!success) {
-                // Fallback to YouTube search
-                try {
-                    const yts = require('yt-search');
-                    const search = await yts(query);
-                    const video = search.videos[0];
-
-                    if (video) {
-                        await Blu3Bot.sendMessage(from, {
-                            image: { url: video.thumbnail },
-                            caption: `*🎵 Music Info*\n\n*Title:* ${video.title}\n*Artist:* ${video.author.name}\n*Duration:* ${video.timestamp}\n*Views:* ${video.views.toLocaleString()}\n\n*Listen:* ${video.url}\n\n*Powered by Blu3Bot*`
-                        }, { quoted: message });
+                    if (searchRes?.data?.tracks?.items?.[0]) {
+                        spotifyUrl = searchRes.data.tracks.items[0].external_urls.spotify;
                     } else {
-                        await reply(`*🎵 Music Search: ${query}*\n\nNo specific results found.\n\n*Try:*\n• .play ${query} - Play music\n• .shazam ${query} - Find song details\n• .yt ${query} - YouTube search`);
+                        await reply(`❌ No Spotify track found for: "${input}"\n\nTry pasting the full Spotify track link instead.`);
+                        return;
                     }
-                } catch (fallbackError) {
-                    await reply(`*🎵 Music Search: ${query}*\n\n*Alternative commands:*\n• .play ${query} - Play music\n• .shazam ${query} - Identify song\n• .yt ${query} - YouTube search\n\n*Powered by Blu3Bot*`);
-                    await react('❌');
                 }
-            } else {
-                await react('✅');
+
+                // Use Spotify OEmbed (public, no auth required)
+                const oembedRes = await axios.get('https://open.spotify.com/oembed', {
+                    params: { url: spotifyUrl },
+                    timeout: 10000
+                });
+
+                const data = oembedRes.data;
+
+                const caption = [
+                    `🎵 *Spotify Track*`,
+                    `\n📌 *${data.title || 'Unknown Title'}*`,
+                    data.artist_name ? `👤 ${data.artist_name}` : '',
+                    data.album_name ? `💿 ${data.album_name}` : '',
+                    `\n🔗 ${spotifyUrl}`,
+                    `\n⚠️ _Full audio download requires Spotify API credentials._`,
+                    `\n_Powered by Blu3Bot_`
+                ].filter(Boolean).join('\n');
+
+                if (data.thumbnail_url) {
+                    await Blu3Bot.sendMessage(from, {
+                        image: { url: data.thumbnail_url },
+                        caption
+                    }, { quoted: message });
+                } else {
+                    await reply(caption);
+                }
+
+            } catch (err) {
+                console.error('Spotify error:', err.message);
+
+                if (err.response?.status === 401) {
+                    await reply('❌ Spotify session expired. Please try again.');
+                } else {
+                    await reply('❌ Could not fetch Spotify info. Make sure the link is valid.\n\nSpotify requires an API key for full audio access — track info and cover art are available without one.');
+                }
             }
         }
     ),
-    aliases: ['music', 'song', 'track']
+    aliases: ['sp', 'spotifydl', 'track']
 };
+
+async function getSpotifyToken() {
+    // Public token endpoint — gives limited access (search)
+    const res = await axios.get('https://open.spotify.com/get_access_token', {
+        params: { reason: 'transport', productType: 'web_player' },
+        headers: { 'User-Agent': 'Mozilla/5.0' },
+        timeout: 8000
+    });
+    return res.data.accessToken;
+}

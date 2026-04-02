@@ -1,4 +1,7 @@
-// commands/pinterest.js - UPDATED WITH YOUR EXACT APIS
+// commands/pintrest.js
+const axios = require('axios');
+const cheerio = require('cheerio');
+
 class Command {
     constructor(name, description, usage, category, execute) {
         this.name = name;
@@ -9,102 +12,79 @@ class Command {
     }
 }
 
-const axios = require('axios');
+async function fetchPinterestMedia(url) {
+    const res = await axios.get(url, {
+        headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36',
+            'Accept-Language': 'en-US,en;q=0.9'
+        },
+        timeout: 15000
+    });
+
+    const $ = cheerio.load(res.data);
+
+    const videoUrl = $('meta[property="og:video"]').attr('content') ||
+        $('meta[name="og:video"]').attr('content') || null;
+
+    const imageUrl = $('meta[property="og:image"]').attr('content') ||
+        $('meta[name="og:image"]').attr('content') || null;
+
+    const title = $('meta[property="og:title"]').attr('content') ||
+        $('meta[name="og:title"]').attr('content') || 'Pinterest Pin';
+
+    // Pinterest's og:image sometimes points to a sized version — get the original
+    const cleanImage = imageUrl
+        ? imageUrl.replace(/\/\d+x(\d+)\//, '/originals/')
+        : null;
+
+    return { videoUrl, imageUrl: cleanImage || imageUrl, title };
+}
 
 module.exports = {
     command: new Command(
         'pinterest',
-        'Download images from Pinterest',
-        '.pinterest [pinterest url]',
+        'Download Pinterest image or video',
+        '.pinterest [url]',
         'download',
         async (reply, react, from, message, args, Blu3Bot, context) => {
             await react('📌');
-            
-            const input = args.join(' ');
-            if (!input) {
-                await reply('Please provide a Pinterest URL.\nExample: .pinterest https://pin.it/example');
+
+            const url = args.join(' ').trim();
+            if (!url || !url.includes('pinterest') && !url.includes('pin.it')) {
+                await reply('📌 *Pinterest Downloader*\n\nUsage: `.pinterest [url]`\n\nSupports: Photos, Videos, Story pins\n\nExample:\n`.pinterest https://www.pinterest.com/pin/123456`');
                 return;
             }
 
-            if (!input.includes('pinterest.com') && !input.includes('pin.it')) {
-                await reply('❌ Please provide a valid Pinterest URL.');
-                return;
-            }
+            await reply('⏳ Fetching Pinterest media...');
 
-            // Using YOUR exact Pinterest APIs from the message
-            const pinterestApis = [
-                'https://api.diioffc.web.id/api/download/pinterest',
-                'https://bk9.fun/download/pinterest',
-                'https://api.erdwpe.com/api/download/pinterest'
-            ];
+            try {
+                let resolvedUrl = url;
 
-            await reply('📌 *Downloading from Pinterest...*');
-
-            let success = false;
-
-            // Try each API until one works
-            for (const apiUrl of pinterestApis) {
-                try {
-                    console.log(`Trying Pinterest API: ${apiUrl}`);
-                    
-                    const response = await axios.get(`${apiUrl}?url=${encodeURIComponent(input)}`, {
-                        timeout: 15000,
-                        headers: {
-                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-                        }
-                    });
-
-                    const data = response.data;
-
-                    // Handle YOUR specific API response formats
-                    if (data.status && data.result && data.result.url) {
-                        // API format 1: api.diioffc.web.id format
-                        await Blu3Bot.sendMessage(from, {
-                            image: { url: data.result.url },
-                            caption: `📌 Pinterest\n${data.result.title || 'Downloaded by Blu3Bot'}`
-                        }, { quoted: message });
-                        success = true;
-                        break;
-
-                    } else if (data.status && data.BK9 && data.BK9.url) {
-                        // API format 2: BK9 format
-                        await Blu3Bot.sendMessage(from, {
-                            image: { url: data.BK9.url },
-                            caption: `📌 Pinterest\nDownloaded by Blu3Bot`
-                        }, { quoted: message });
-                        success = true;
-                        break;
-
-                    } else if (data.url || data.imageUrl) {
-                        // API format 3: Simple URL format
-                        const imageUrl = data.url || data.imageUrl;
-                        await Blu3Bot.sendMessage(from, {
-                            image: { url: imageUrl },
-                            caption: `📌 Pinterest\nDownloaded by Blu3Bot`
-                        }, { quoted: message });
-                        success = true;
-                        break;
-
-                    } else if (data.data && data.data.url) {
-                        // API format 4: Nested data format
-                        await Blu3Bot.sendMessage(from, {
-                            image: { url: data.data.url },
-                            caption: `📌 Pinterest\n${data.data.title || 'Downloaded by Blu3Bot'}`
-                        }, { quoted: message });
-                        success = true;
-                        break;
-                    }
-                } catch (error) {
-                    console.log(`Pinterest API failed: ${apiUrl} - ${error.message}`);
-                    // Continue to next API
+                // Follow short links (pin.it)
+                if (url.includes('pin.it')) {
+                    const redir = await axios.get(url, { maxRedirects: 5, timeout: 10000 });
+                    resolvedUrl = redir.request?.res?.responseUrl || url;
                 }
-            }
 
-            if (success) {
-                await react('✅');
-            } else {
-                await reply('❌ All Pinterest downloaders failed. Please try:\n• Different Pinterest URL\n• Check if pin is public\n• Try again later');
-                await react('❌');
+                const { videoUrl, imageUrl, title } = await fetchPinterestMedia(resolvedUrl);
+
+                if (videoUrl) {
+                    await Blu3Bot.sendMessage(from, {
+                        video: { url: videoUrl },
+                        caption: `📌 *Pinterest Video*\n\n_${title.slice(0, 150)}_\n\n_Powered by Blu3Bot_`
+                    }, { quoted: message });
+                } else if (imageUrl) {
+                    await Blu3Bot.sendMessage(from, {
+                        image: { url: imageUrl },
+                        caption: `📌 *Pinterest Photo*\n\n_${title.slice(0, 150)}_\n\n_Powered by Blu3Bot_`
+                    }, { quoted: message });
+                } else {
+                    await reply('❌ Could not extract media from this pin. It may be a private or animated pin.');
+                }
+
+            } catch (err) {
+                console.error('Pinterest DL error:', err.message);
+                await reply('❌ Download failed. Make sure the link is a valid public Pinterest pin.');
             }
         }
     ),

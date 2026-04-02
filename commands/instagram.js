@@ -1,4 +1,6 @@
-// commands/instagram.js - UPDATED WITH YOUR EXACT APIS
+// commands/instagram.js
+const igdl = require('instagram-url-direct');
+
 class Command {
     constructor(name, description, usage, category, execute) {
         this.name = name;
@@ -9,77 +11,48 @@ class Command {
     }
 }
 
-const axios = require('axios');
-
 module.exports = {
     command: new Command(
         'insta',
-        'Download Instagram videos and images',
-        '.insta [instagram url]',
+        'Download Instagram photo or video',
+        '.insta [url]',
         'download',
         async (reply, react, from, message, args, Blu3Bot, context) => {
             await react('📸');
-            
-            if (!args || args.length === 0) {
-                await reply('Please provide an Instagram URL to download from.');
+
+            const url = args.join(' ').trim();
+            if (!url || !url.includes('instagram')) {
+                await reply('📸 *Instagram Downloader*\n\nUsage: `.insta [url]`\n\nSupports: Posts, Reels, IGTV\n\nExample:\n`.insta https://www.instagram.com/p/abc123`');
                 return;
             }
 
-            const url = args.join(' ');
+            await reply('⏳ Fetching Instagram media...');
 
-            // Using YOUR exact Instagram APIs from the message
-            const instagramApis = [
-                'https://api.diioffc.web.id/api/download/instagram',
-                'https://igram.io/api',
-                'https://igram.world/api/instagram'
-            ];
+            try {
+                const result = await igdl.igDl(url);
 
-            await reply('📸 *Downloading Instagram media...*');
-
-            let success = false;
-
-            // Try each API until one works
-            for (const apiUrl of instagramApis) {
-                try {
-                    console.log(`Trying Instagram API: ${apiUrl}`);
-                    
-                    const response = await axios.get(`${apiUrl}?url=${encodeURIComponent(url)}`, {
-                        timeout: 15000
-                    });
-
-                    const data = response.data;
-
-                    // Handle your specific API format
-                    if (data.status && data.result && data.result.length > 0) {
-                        const media = data.result[0];
-
-                        if (media.url) {
-                            await Blu3Bot.sendMessage(from, {
-                                video: { url: media.url },
-                                caption: "📸 Instagram Video - Blu3Bot"
-                            }, { quoted: message });
-                            success = true;
-                            break;
-                        } else if (media.thumbnail) {
-                            await Blu3Bot.sendMessage(from, {
-                                image: { url: media.thumbnail },
-                                caption: "📸 Instagram Image - Blu3Bot"
-                            }, { quoted: message });
-                            success = true;
-                            break;
-                        }
-                    }
-                } catch (error) {
-                    console.log(`Instagram API failed: ${apiUrl} - ${error.message}`);
-                    // Continue to next API
+                if (!result || !result.links || result.links.length === 0) {
+                    await reply('❌ Could not download this post. Make sure the account is public and the link is correct.');
+                    return;
                 }
-            }
 
-            if (success) {
-                await react('✅');
-            } else {
-                await reply('❌ All Instagram downloaders failed. Please try again later or use a different URL.');
-                await react('❌');
+                for (const item of result.links) {
+                    if (item.type === 'video' || item.link?.includes('.mp4')) {
+                        await Blu3Bot.sendMessage(from, {
+                            video: { url: item.link },
+                            caption: `🎬 *Instagram Reel/Video*\n\n_Powered by Blu3Bot_`
+                        }, { quoted: message });
+                    } else {
+                        await Blu3Bot.sendMessage(from, {
+                            image: { url: item.link },
+                            caption: `📸 *Instagram Photo*\n\n_Powered by Blu3Bot_`
+                        }, { quoted: message });
+                    }
+                }
+
+            } catch (err) {
+                console.error('Instagram DL error:', err.message);
+                await reply('❌ Download failed. The post may be private, expired, or unavailable.\n\nMake sure the account is public and you pasted the full link.');
             }
         }
     ),
