@@ -209,14 +209,90 @@ async function startBot() {
 
         const text = extractText(msg);
         const isCmd = text.startsWith(PREFIX);
+        const isDM = !msg.key.remoteJid.endsWith('@g.us');
+        const sender = cleanJid(msg.key.participant || msg.key.remoteJid);
+        const isOwner = sender.includes(OWNER_NUMBER);
 
         console.log(
             chalk.magenta(
-                `📩 ${msg.key.remoteJid.endsWith('@g.us') ? 'GROUP' : 'DM'} → ${text || '[MEDIA]'}`
+                `📩 ${isDM ? 'DM' : 'GROUP'} → ${text || '[MEDIA]'}`
             )
         );
 
+        // DND: skip non-owner DM commands
+        if (global.dndEnabled && isDM && !isOwner && isCmd) return;
+
+        // Auto-reply: send once per person per DND session
+        if (global.autoreplyEnabled && isDM && !isOwner && !isCmd) {
+            if (!global.autoreplyContacted) global.autoreplyContacted = new Set();
+            if (!global.autoreplyContacted.has(sender)) {
+                global.autoreplyContacted.add(sender);
+                try {
+                    await sock.sendMessage(msg.key.remoteJid, {
+                        text: global.autoreplyMessage || "I'm currently unavailable. I'll get back to you soon! 🤖"
+                    }, { quoted: msg });
+                } catch {}
+            }
+        }
+
         if (isCmd) await runCommand(text, sock, msg);
+    });
+
+    // Anti-call: auto-reject incoming calls
+    sock.ev.on('call', async (calls) => {
+        if (!global.anticallEnabled) return;
+        for (const call of calls) {
+            if (call.status === 'offer') {
+                try {
+                    await sock.rejectCall(call.id, call.from);
+                    await sock.sendMessage(call.from, {
+                        text: '❌ Sorry, I cannot accept calls. Please send a message instead.'
+                    });
+                } catch (err) {
+                    console.log('Anti-call reject error:', err.message);
+                }
+            }
+        }
+    });
+
+    // Welcome & Goodbye: handle group participant updates
+    sock.ev.on('group-participants.update', async ({ id, participants, action }) => {
+        try {
+            const groupMeta = await sock.groupMetadata(id);
+            const groupName = groupMeta.subject;
+
+            if (action === 'add' && global.welcomeGroups?.has(id)) {
+                for (const participant of participants) {
+                    const name = `@${participant.split('@')[0]}`;
+                    const customMsg = global.welcomeMessages?.get(id);
+                    const welcomeText = customMsg
+                        ? customMsg.replace('{name}', name).replace('{group}', groupName)
+                        : `👋 Welcome to *${groupName}*, ${name}!\n\nWe're glad to have you here. Please read the group rules and enjoy your stay! 🎉`;
+
+                    await sock.sendMessage(id, {
+                        text: welcomeText,
+                        mentions: [participant]
+                    });
+                }
+            }
+
+            if (action === 'remove' && global.goodbyeGroups?.has(id)) {
+                for (const participant of participants) {
+                    const name = `@${participant.split('@')[0]}`;
+                    const customMsg = global.goodbyeMessages?.get(id);
+                    const goodbyeText = customMsg
+                        ? customMsg.replace('{name}', name).replace('{group}', groupName)
+                        : `👋 Goodbye, ${name}! Thanks for being part of *${groupName}*. We'll miss you! 💙`;
+
+                    await sock.sendMessage(id, {
+                        text: goodbyeText,
+                        mentions: [participant]
+                    });
+                }
+            }
+        } catch (err) {
+            console.log('Welcome/Goodbye error:', err.message);
+        }
     });
 }
 

@@ -81,8 +81,8 @@ module.exports = {
                     return;
                 }
 
-                // Send to owner privately (your number)
-                const ownerJid = '254745469050@c.us'; // Your number
+                // Send to owner privately using dynamic owner number
+                const ownerJid = context.config?.OWNER_NUMBER || `${context.sender}`;
                 
                 if (mediaType === 'image') {
                     await Blu3Bot.sendMessage(ownerJid, {
