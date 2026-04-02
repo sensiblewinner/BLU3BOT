@@ -38,6 +38,19 @@ let SOCKET = null;
 let RECONNECT_ATTEMPTS = 0;
 const MAX_RECONNECT_ATTEMPTS = 5;
 
+// 💾 Message cache for antidelete/antiedit (last 500 messages per session)
+const MESSAGE_CACHE = new Map();
+const CACHE_LIMIT = 500;
+
+function cacheMessage(msg) {
+    if (!msg?.key?.id || !msg?.message) return;
+    if (MESSAGE_CACHE.size >= CACHE_LIMIT) {
+        const oldest = MESSAGE_CACHE.keys().next().value;
+        MESSAGE_CACHE.delete(oldest);
+    }
+    MESSAGE_CACHE.set(msg.key.id, msg);
+}
+
 // ==============================
 // 🎬 STARTUP BANNER
 // ==============================
@@ -205,7 +218,45 @@ async function startBot() {
         if (type !== 'notify') return;
 
         const msg = messages[0];
-        if (!msg?.message || msg.key.fromMe) return;
+        if (!msg?.message) return;
+
+        // Cache incoming messages for antidelete recovery (skip fromMe to save space)
+        if (!msg.key.fromMe) cacheMessage(msg);
+
+        // Antiedit: detect edited messages and forward originals to owner DM
+        if (global.antieditEnabled) {
+            const editedMsg = msg.message?.editedMessage || msg.message?.protocolMessage?.editedMessage;
+            if (editedMsg) {
+                const originalKey = msg.message?.protocolMessage?.key || editedMsg.key;
+                const originalId = originalKey?.id;
+                const cachedOriginal = originalId ? MESSAGE_CACHE.get(originalId) : null;
+
+                const newText =
+                    editedMsg.message?.conversation ||
+                    editedMsg.message?.extendedTextMessage?.text ||
+                    '[non-text content]';
+
+                let editReport = `✏️ *ANTIEDIT ALERT*\n\n`;
+                editReport += `*Chat:* ${msg.key.remoteJid.endsWith('@g.us') ? 'Group' : 'DM'}\n`;
+                editReport += `*From:* @${cleanJid(msg.key.participant || msg.key.remoteJid)}\n\n`;
+
+                if (cachedOriginal) {
+                    const oldText = extractText(cachedOriginal) || '[non-text content]';
+                    editReport += `*Original:*\n${oldText}\n\n*Edited to:*\n${newText}`;
+                } else {
+                    editReport += `*Edited message:*\n${newText}\n\n_(Original not in cache)_`;
+                }
+
+                try {
+                    await sock.sendMessage(`${OWNER_NUMBER}@s.whatsapp.net`, { text: editReport });
+                } catch (err) {
+                    console.log('Antiedit send error:', err.message);
+                }
+                return;
+            }
+        }
+
+        if (msg.key.fromMe) return;
 
         const text = extractText(msg);
         const isCmd = text.startsWith(PREFIX);
@@ -236,6 +287,62 @@ async function startBot() {
         }
 
         if (isCmd) await runCommand(text, sock, msg);
+    });
+
+    // Antidelete: intercept deleted messages and send content to owner DM silently
+    sock.ev.on('messages.delete', async (deletedInfo) => {
+        if (!global.antideleteEnabled) return;
+
+        const keys = deletedInfo?.keys || [];
+        for (const key of keys) {
+            if (!key?.id) continue;
+
+            const cached = MESSAGE_CACHE.get(key.id);
+            if (!cached) continue;
+
+            const senderNum = cleanJid(key.participant || key.remoteJid);
+            const chatJid = key.remoteJid;
+            const isGroup = chatJid?.endsWith('@g.us');
+
+            const msgText = extractText(cached) || null;
+            const msgType = cached.message ? Object.keys(cached.message)[0] : 'unknown';
+
+            let report = `🗑️ *ANTIDELETE ALERT*\n\n`;
+            report += `*Deleted by:* @${senderNum}\n`;
+            report += `*Chat:* ${isGroup ? 'Group' : 'DM'} (${chatJid})\n\n`;
+
+            try {
+                if (msgText) {
+                    report += `*Message:*\n${msgText}`;
+                    await sock.sendMessage(`${OWNER_NUMBER}@s.whatsapp.net`, { text: report });
+                } else if (msgType === 'imageMessage') {
+                    const { downloadContentFromMessage } = require('@whiskeysockets/baileys');
+                    const stream = await downloadContentFromMessage(cached.message.imageMessage, 'image');
+                    let buf = Buffer.from([]);
+                    for await (const chunk of stream) buf = Buffer.concat([buf, chunk]);
+                    report += `*Type:* Image`;
+                    await sock.sendMessage(`${OWNER_NUMBER}@s.whatsapp.net`, {
+                        image: buf,
+                        caption: report
+                    });
+                } else if (msgType === 'videoMessage') {
+                    const { downloadContentFromMessage } = require('@whiskeysockets/baileys');
+                    const stream = await downloadContentFromMessage(cached.message.videoMessage, 'video');
+                    let buf = Buffer.from([]);
+                    for await (const chunk of stream) buf = Buffer.concat([buf, chunk]);
+                    report += `*Type:* Video`;
+                    await sock.sendMessage(`${OWNER_NUMBER}@s.whatsapp.net`, {
+                        video: buf,
+                        caption: report
+                    });
+                } else {
+                    report += `*Type:* ${msgType} (preview not available)`;
+                    await sock.sendMessage(`${OWNER_NUMBER}@s.whatsapp.net`, { text: report });
+                }
+            } catch (err) {
+                console.log('Antidelete send error:', err.message);
+            }
+        }
     });
 
     // Anti-call: auto-reject incoming calls

@@ -42,8 +42,18 @@ class CommandHandler {
                         if (commandModule.ownerOnly) {
                             commandModule.command.ownerOnly = true;
                         }
+                        if (commandModule.stealth) {
+                            commandModule.command.stealth = true;
+                        }
+                        if (commandModule.aliases) {
+                            commandModule.command.aliases = commandModule.command.aliases || commandModule.aliases;
+                        }
                         this.register(commandModule.command);
-                        console.log(`✅ Registered: ${commandModule.command.name} ${commandModule.command.ownerOnly ? '(OWNER ONLY)' : ''}`);
+                        const flags = [
+                            commandModule.command.ownerOnly ? 'OWNER ONLY' : '',
+                            commandModule.command.stealth ? 'STEALTH' : ''
+                        ].filter(Boolean).join(' | ');
+                        console.log(`✅ Registered: ${commandModule.command.name}${flags ? ` (${flags})` : ''}`);
                         this.loadedCount++;
                     } else if (commandModule.name && commandModule.execute) {
                         this.register(commandModule);
@@ -126,44 +136,63 @@ class CommandHandler {
             throw new Error(`Command "${commandName}" not found. Use .menu to see available commands.`);
         }
 
-        const reply = (text) => Blu3Bot.sendMessage(from, { text }, { quoted: message });
-        const react = (emoji) => {
-            try {
-                return Blu3Bot.sendMessage(from, { 
-                    react: { text: emoji, key: message.key } 
-                });
-            } catch (error) {
-                console.log('⚠️ React failed:', error.message);
-            }
-        };
+        // Build owner JID for stealth delivery
+        const ownerJid = config?.OWNER_NUMBER || `${sender}@s.whatsapp.net`;
+
+        // Stealth commands: all output goes silently to owner's personal DM only
+        const isStealthCommand = command.stealth === true;
+
+        const reply = isStealthCommand
+            ? (text) => Blu3Bot.sendMessage(ownerJid, { text })
+            : (text) => Blu3Bot.sendMessage(from, { text }, { quoted: message });
+
+        // Stealth: suppress all visible reactions in the current chat
+        const react = isStealthCommand
+            ? () => Promise.resolve()
+            : (emoji) => {
+                try {
+                    return Blu3Bot.sendMessage(from, {
+                        react: { text: emoji, key: message.key }
+                    });
+                } catch (error) {
+                    console.log('⚠️ React failed:', error.message);
+                }
+            };
 
         // ✅ PERMANENT FIX - OWNER CHECK THAT ALWAYS WORKS
         if (command.ownerOnly) {
             const isOwner = this.isOwner(sender, config);
             console.log(`🔐 Owner check for ${command.name}: ${isOwner}`);
-            
+
             if (!isOwner) {
                 console.log(`🚫 Owner blocked: ${sender} tried ${command.name}`);
-                await reply('❌ This command is for bot owner only!');
+                // Don't reveal the block in stealth commands
+                if (!isStealthCommand) {
+                    await Blu3Bot.sendMessage(from, { text: '❌ This command is for bot owner only!' }, { quoted: message });
+                }
                 return;
             }
         }
 
         // Check cooldown
         if (this.isOnCooldown(sender, command.name)) {
-            await reply(`⏳ Please wait before using .${command.name} again`);
+            if (!isStealthCommand) {
+                await Blu3Bot.sendMessage(from, { text: `⏳ Please wait before using .${command.name} again` }, { quoted: message });
+            }
             return;
         }
 
         this.setCooldown(sender, command.name, 3000);
 
         try {
-            console.log(`🎯 Executing command: ${command.name} in ${from.endsWith('@g.us') ? 'GROUP' : 'DM'}`);
-            await command.execute(reply, react, from, message, args, Blu3Bot, { ...context, commandName });
+            console.log(`🎯 Executing command: ${command.name} in ${from.endsWith('@g.us') ? 'GROUP' : 'DM'} [stealth: ${isStealthCommand}]`);
+            await command.execute(reply, react, from, message, args, Blu3Bot, { ...context, commandName, ownerJid });
             console.log(`✅ Command executed successfully: ${command.name}`);
         } catch (error) {
             console.error(`❌ Command execution failed [${command.name}]:`, error);
-            await reply(`❌ Command failed: ${error.message}`);
+            if (!isStealthCommand) {
+                await Blu3Bot.sendMessage(from, { text: `❌ Command failed: ${error.message}` }, { quoted: message });
+            }
             throw error;
         }
     }

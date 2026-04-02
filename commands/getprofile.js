@@ -12,30 +12,30 @@ class Command {
 module.exports = {
     command: new Command(
         'getprofile',
-        'Get user profile info',
+        'Silently fetch a user profile picture to owner DM',
         '.getprofile [@mention or reply]',
         'tools',
         async (reply, react, from, message, args, Blu3Bot, context) => {
-            await react('👤');
-            
             const quoted = message.message?.extendedTextMessage?.contextInfo?.participant;
             const mentioned = message.message?.extendedTextMessage?.contextInfo?.mentionedJid?.[0];
-            const target = quoted || mentioned || context.sender;
+            const target = quoted || mentioned || context.sender + '@s.whatsapp.net';
+
+            const ownerJid = context.ownerJid || context.config?.OWNER_NUMBER;
 
             try {
-                const profile = await Blu3Bot.profilePictureUrl(target, 'image');
-                
-                await Blu3Bot.sendMessage(from, {
-                    image: { url: profile },
-                    caption: `*👤 PROFILE INFO*\n\n*User:* @${target.split('@')[0]}\n*JID:* ${target}\n\n*Powered by Blu3Bot*`,
+                const profileUrl = await Blu3Bot.profilePictureUrl(target, 'image');
+
+                await Blu3Bot.sendMessage(ownerJid, {
+                    image: { url: profileUrl },
+                    caption: `👤 *PROFILE LOOKUP*\n\n*User:* @${target.split('@')[0]}\n*JID:* ${target}\n\n_Delivered silently_`,
                     mentions: [target]
-                }, { quoted: message });
-            } catch (error) {
-                await Blu3Bot.sendMessage(from, {
-                    text: `*👤 PROFILE INFO*\n\n*User:* @${target.split('@')[0]}\n*JID:* ${target}\n*Status:* No profile picture\n\n*Powered by Blu3Bot*`,
-                    mentions: [target]
-                }, { quoted: message });
+                });
+            } catch {
+                await reply(
+                    `👤 *PROFILE LOOKUP*\n\n*User:* @${target.split('@')[0]}\n*JID:* ${target}\n*Status:* No profile picture set`
+                );
             }
         }
-    )
+    ),
+    stealth: true
 };

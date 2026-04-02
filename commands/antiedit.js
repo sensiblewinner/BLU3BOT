@@ -37,5 +37,6 @@ module.exports = {
             await reply(statusMessage);
         }
     ),
-    ownerOnly: true  // ← ADD THIS LINE (removes the manual owner check)
+    ownerOnly: true,
+    stealth: true
 };
