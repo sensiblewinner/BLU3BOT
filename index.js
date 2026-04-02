@@ -323,10 +323,11 @@ async function startBot() {
 
         if (msg.key.fromMe) return;
 
-        const text = extractText(msg);
+        const from  = msg.key.remoteJid;
+        const text  = extractText(msg);
         const isCmd = text.startsWith(PREFIX);
-        const isDM = !msg.key.remoteJid.endsWith('@g.us');
-        const sender = cleanJid(msg.key.participant || msg.key.remoteJid);
+        const isDM  = !from.endsWith('@g.us');
+        const sender  = cleanJid(msg.key.participant || from);
         const isOwner = sender.includes(OWNER_NUMBER);
 
         console.log(
