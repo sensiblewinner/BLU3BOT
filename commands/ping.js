@@ -32,8 +32,9 @@ module.exports = {
 |        ⚡ Ping Check ⚡        |
 |------------------------------
 | 🛰️ Pinging the digital realm...
-| ⏳ Latency detected: {ping} ms
-| 💾 RAM Usage: 512MB / 2048MB
+| ⏳ Latency detected: ${latency} ms
+| 💾 RAM Usage: ${memoryUsage} MB
+| 🕒 Uptime: ${uptime}
 | ✅ Connection status: STABLE
 | 🔄 Sync with Blu3Bot— All systems green! 
 +------------------------------+

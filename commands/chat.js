@@ -1,4 +1,4 @@
-// commands/chat.js
+// commands/chat.js - FIXED with real AI API
 class Command {
     constructor(name, description, usage, category, execute) {
         this.name = name;
@@ -9,23 +9,25 @@ class Command {
     }
 }
 
+const axios = require('axios');
+
 module.exports = {
     command: new Command(
         'chat',
-        'Continue AI conversations',
+        'AI conversation with memory',
         '.chat [message]',
         'ai',
         async (reply, react, from, message, args, Blu3Bot, context) => {
             await react('💬');
-            
+
             const userMessage = args.join(' ');
             if (!userMessage) {
-                await reply('Please provide a message to continue the conversation.');
+                await reply('Please provide a message.\nExample: .chat What is the capital of France?');
                 return;
             }
 
             try {
-                // Initialize conversation history if not exists
+                // Initialize conversation history
                 if (!global.chatSessions) global.chatSessions = new Map();
                 if (!global.chatSessions.has(from)) {
                     global.chatSessions.set(from, []);
@@ -33,25 +35,44 @@ module.exports = {
 
                 const session = global.chatSessions.get(from);
                 session.push({ role: 'user', content: userMessage });
-
-                // Keep only last 10 messages
                 if (session.length > 10) session.shift();
 
-                // Simple AI response (replace with actual AI API)
-                const responses = [
-                    "That's an interesting point! What else would you like to discuss?",
-                    "I understand. Can you tell me more about that?",
-                    "Fascinating! How does that make you feel?",
-                    "I see what you mean. What are your thoughts on this?",
-                    "That's a great conversation starter! What would you like to explore next?"
+                // Build context from history
+                const contextStr = session
+                    .slice(-4)
+                    .map(m => `${m.role === 'user' ? 'User' : 'AI'}: ${m.content}`)
+                    .join('\n');
+
+                // Use free AI API
+                const aiApis = [
+                    `https://api.erdwpe.com/api/ai/gpt?query=${encodeURIComponent(userMessage)}`,
+                    `https://api.gurusensei.workers.dev/llama?prompt=${encodeURIComponent(userMessage)}`
                 ];
-                
-                const aiResponse = responses[Math.floor(Math.random() * responses.length)];
+
+                let aiResponse = null;
+
+                for (const apiUrl of aiApis) {
+                    try {
+                        const resp = await axios.get(apiUrl, { timeout: 20000 });
+                        const data = resp.data;
+                        aiResponse = data.result || data.response?.response || data.response || data.answer;
+                        if (aiResponse && typeof aiResponse === 'string' && aiResponse.trim()) break;
+                    } catch (_) {}
+                }
+
+                if (!aiResponse) {
+                    aiResponse = 'I am having trouble connecting right now. Please try again in a moment.';
+                }
+
                 session.push({ role: 'assistant', content: aiResponse });
 
                 await reply(`*💬 AI Chat*\n\n*You:* ${userMessage}\n\n*AI:* ${aiResponse}\n\n*Powered by Blu3Bot*`);
+                await react('✅');
+
             } catch (error) {
-                await reply('❌ Chat session error.');
+                console.error('Chat error:', error.message);
+                await reply('❌ Chat error. Please try again.');
+                await react('❌');
             }
         }
     )

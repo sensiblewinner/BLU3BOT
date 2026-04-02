@@ -1,4 +1,4 @@
-// commands/dalle.js - UPDATED WITH YOUR EXACT API
+// commands/dalle.js - FIXED with Pollinations.ai (free, no key needed)
 class Command {
     constructor(name, description, usage, category, execute) {
         this.name = name;
@@ -14,70 +14,51 @@ const axios = require('axios');
 module.exports = {
     command: new Command(
         'dalle',
-        'Generate images from text',
+        'Generate AI images from text (free)',
         '.dalle [prompt]',
         'ai',
         async (reply, react, from, message, args, Blu3Bot, context) => {
             await react('🎨');
-            
+
             const prompt = args.join(' ');
             if (!prompt) {
-                await reply('Please provide a prompt for image generation.');
+                await reply('Please provide a prompt for image generation.\nExample: .dalle a futuristic city at night');
                 return;
             }
 
-            // Using YOUR exact image API from the message
-            const imageApis = [
-                'https://api.pexels.com/v1/search'
-            ];
+            await reply('🎨 *Generating image, please wait...*');
 
-            await reply('🎨 *Generating image...*');
+            try {
+                // Pollinations.ai - completely free, no API key required
+                const seed = Math.floor(Math.random() * 999999);
+                const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?seed=${seed}&width=512&height=512&nologo=true`;
 
-            let success = false;
+                // Fetch image as buffer to confirm it works
+                const imgResp = await axios.get(imageUrl, {
+                    responseType: 'arraybuffer',
+                    timeout: 45000
+                });
 
-            // Try the API
-            for (const apiUrl of imageApis) {
+                await Blu3Bot.sendMessage(from, {
+                    image: Buffer.from(imgResp.data),
+                    caption: `🎨 *AI Generated Image*\n\n*Prompt:* ${prompt}\n\n*Powered by Blu3Bot*`
+                }, { quoted: message });
+
+                await react('✅');
+            } catch (error) {
+                console.error('DALLE error:', error.message);
+                // Fallback: send the URL directly (let WhatsApp render preview)
                 try {
-                    console.log(`Trying Image API: ${apiUrl}`);
-                    
-                    const response = await axios.get(`${apiUrl}?query=${encodeURIComponent(prompt)}&per_page=1`, {
-                        headers: { 
-                            'Authorization': '563492ad6f91700001000001b4e7a8c8b4a14f8c8b4a8c8b4a8c8b4a' // Free demo key
-                        },
-                        timeout: 15000
-                    });
-
-                    const data = response.data;
-
-                    // Handle YOUR specific API response format
-                    if (data.photos && data.photos.length > 0) {
-                        await Blu3Bot.sendMessage(from, {
-                            image: { url: data.photos[0].src.large2x },
-                            caption: `🎨 Generated: "${prompt}"\nPowered by Blu3Bot`
-                        }, { quoted: message });
-                        success = true;
-                        break;
-                    }
-                } catch (error) {
-                    console.log(`Image API failed: ${apiUrl} - ${error.message}`);
-                    // Continue to next API if there were more
-                }
-            }
-
-            if (!success) {
-                // Fallback to placeholder image
-                try {
+                    const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=512&height=512&nologo=true`;
                     await Blu3Bot.sendMessage(from, {
-                        image: { url: `https://via.placeholder.com/500/0000FF/FFFFFF?text=${encodeURIComponent(prompt.substring(0, 30))}` },
-                        caption: `🎨 Generated: "${prompt}"\nPowered by Blu3Bot (Fallback)`
+                        image: { url: imageUrl },
+                        caption: `🎨 *AI Generated Image*\n\n*Prompt:* ${prompt}\n\n*Powered by Blu3Bot*`
                     }, { quoted: message });
                     await react('✅');
                 } catch (fallbackError) {
-                    await reply('❌ Image generation failed. Try a different prompt.');
+                    await reply('❌ Image generation failed. Please try a different prompt.');
                     await react('❌');
                 }
-            } else {
-                await react('✅');
             }
         }
     ),

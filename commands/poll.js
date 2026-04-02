@@ -26,12 +26,13 @@ module.exports = {
             }
 
             const options = optionsString.split(',').map(opt => opt.trim());
-            await reply({
+            await Blu3Bot.sendMessage(from, {
                 poll: {
                     name: question.trim(),
-                    values: options
+                    values: options,
+                    selectableCount: 1
                 }
-            });
+            }, { quoted: message });
         }
     )
 };

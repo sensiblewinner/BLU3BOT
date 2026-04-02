@@ -92,10 +92,10 @@ module.exports = {
                     const video = search.videos[0];
 
                     if (video) {
-                        await reply({
+                        await Blu3Bot.sendMessage(from, {
                             image: { url: video.thumbnail },
                             caption: `*🎵 Music Info*\n\n*Title:* ${video.title}\n*Artist:* ${video.author.name}\n*Duration:* ${video.timestamp}\n*Views:* ${video.views.toLocaleString()}\n\n*Listen:* ${video.url}\n\n*Powered by Blu3Bot*`
-                        });
+                        }, { quoted: message });
                     } else {
                         await reply(`*🎵 Music Search: ${query}*\n\nNo specific results found.\n\n*Try:*\n• .play ${query} - Play music\n• .shazam ${query} - Find song details\n• .yt ${query} - YouTube search`);
                     }

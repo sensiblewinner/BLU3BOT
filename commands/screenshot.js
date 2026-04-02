@@ -30,10 +30,10 @@ module.exports = {
                 const screenshotUrl = `https://api.diioffc.web.id/api/tools/sstab?url=${encodeURIComponent(url)}`;
                 const response = await axios.get(screenshotUrl, { responseType: 'arraybuffer' });
 
-                await reply({
-                    image: response.data,
-                    caption: '*Blu3Bot Web Screenshot*'
-                });
+                await Blu3Bot.sendMessage(from, {
+                    image: Buffer.from(response.data),
+                    caption: '*📸 Blu3Bot Web Screenshot*'
+                }, { quoted: message });
             } catch (error) {
                 console.error('Screenshot error:', error);
                 await reply('Failed to take website screenshot.');

@@ -34,21 +34,20 @@ module.exports = {
 
                 if (data.status && data.result) {
                     if (data.result.video) {
-                        await reply({
+                        await Blu3Bot.sendMessage(from, {
                             video: { url: data.result.video },
                             caption: `*📹 Downloaded Video*\n\n${data.result.title || ''}\n\n_Downloaded by Blu3Bot_`
-                        });
+                        }, { quoted: message });
                     } else if (data.result.audio) {
-                        await reply({
+                        await Blu3Bot.sendMessage(from, {
                             audio: { url: data.result.audio },
-                            mimetype: 'audio/mpeg',
-                            caption: `*🎵 Downloaded Audio*\n\n${data.result.title || ''}\n\n_Downloaded by Blu3Bot_`
-                        });
+                            mimetype: 'audio/mpeg'
+                        }, { quoted: message });
                     } else if (data.result.image) {
-                        await reply({
+                        await Blu3Bot.sendMessage(from, {
                             image: { url: data.result.image },
                             caption: `*📷 Downloaded Image*\n\n${data.result.title || ''}\n\n_Downloaded by Blu3Bot_`
-                        });
+                        }, { quoted: message });
                     } else {
                         await reply('❌ No media found in the provided URL.');
                     }

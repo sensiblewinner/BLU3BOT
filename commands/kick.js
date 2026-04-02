@@ -29,10 +29,10 @@ module.exports = {
 
             try {
                 await Blu3Bot.groupParticipantsUpdate(from, [target], 'remove');
-                await reply({
+                await Blu3Bot.sendMessage(from, {
                     text: `✅ @${target.split('@')[0]} has been removed.`,
                     mentions: [target]
-                });
+                }, { quoted: message });
             } catch {
                 await reply('❌ Failed to remove user.');
             }

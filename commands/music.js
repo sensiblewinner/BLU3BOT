@@ -1,5 +1,6 @@
-// commands/music.js
+// commands/music.js - FIXED with real YouTube search
 const axios = require('axios');
+const yts = require('yt-search');
 
 class Command {
     constructor(name, description, usage, category, execute) {
@@ -15,54 +16,46 @@ module.exports = {
     command: new Command(
         'music',
         'Search for music information',
-        '[song name]',
-        'Tools',
-        async (reply, react, from, message, args, Blu3Bot) => {
+        '.music [song name]',
+        'music',
+        async (reply, react, from, message, args, Blu3Bot, context) => {
             const query = args.join(' ');
-            
+
             if (!query) {
-                await react("❌");
-                return reply("❌ Please provide a song name to search\n\nUsage: .music song name");
+                await react('❌');
+                return reply('❌ Please provide a song name to search.\n\nUsage: .music [song name]\nExample: .music shape of you ed sheeran');
             }
 
             try {
-                await react("🔍");
-                
-                // Simulate music search
-                const musicMessage = `
-╔═══════════════════════╗
-║     🎶 *MUSIC*        ║
-╠═══════════════════════╣
-║ 🔍 *Searching:* "${query}"
-║ 
-║ *Music Information:*
-║ 🎵 Song data would appear here
-║ 🎤 Artist information
-║ 📀 Album details
-║ 🎼 Lyrics preview
-║ 
-║ *Features Coming Soon:*
-║ • Music identification
-║ • Lyrics search
-║ • Artist information
-║ • Music recommendations
-╚═══════════════════════╝
+                await react('🎵');
 
-*"Your personal music assistant"*
-                `.trim();
+                const result = await yts(query);
+                const video = result.videos[0];
 
-                await reply(musicMessage);
-                await react("✅");
+                if (!video) {
+                    await react('❌');
+                    return reply(`❌ No music found for "${query}". Try a different search term.`);
+                }
+
+                await Blu3Bot.sendMessage(from, {
+                    image: { url: video.thumbnail },
+                    caption:
+                        `🎵 *${video.title}*\n\n` +
+                        `👤 *Artist:* ${video.author.name}\n` +
+                        `⏱️ *Duration:* ${video.timestamp}\n` +
+                        `👀 *Views:* ${video.views?.toLocaleString() || 'N/A'}\n` +
+                        `🔗 *URL:* ${video.url}\n\n` +
+                        `💡 *Tip:* Use *.song ${query}* to download this track\n\n` +
+                        `*Powered by Blu3Bot*`
+                }, { quoted: message });
+
+                await react('✅');
 
             } catch (error) {
-                console.error("Music command error:", error);
-                await react("❌");
+                console.error('Music command error:', error);
+                await react('❌');
                 await reply(`❌ Music search failed: ${error.message}`);
             }
         }
-    ),
-    
-    execute: async (reply, react, from, message, args, Blu3Bot) => {
-        await module.exports.command.execute(reply, react, from, message, args, Blu3Bot);
-    }
+    )
 };

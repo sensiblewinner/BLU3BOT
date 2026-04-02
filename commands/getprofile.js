@@ -25,16 +25,16 @@ module.exports = {
             try {
                 const profile = await Blu3Bot.profilePictureUrl(target, 'image');
                 
-                await reply({
+                await Blu3Bot.sendMessage(from, {
                     image: { url: profile },
                     caption: `*👤 PROFILE INFO*\n\n*User:* @${target.split('@')[0]}\n*JID:* ${target}\n\n*Powered by Blu3Bot*`,
                     mentions: [target]
-                });
+                }, { quoted: message });
             } catch (error) {
-                await reply({
+                await Blu3Bot.sendMessage(from, {
                     text: `*👤 PROFILE INFO*\n\n*User:* @${target.split('@')[0]}\n*JID:* ${target}\n*Status:* No profile picture\n\n*Powered by Blu3Bot*`,
                     mentions: [target]
-                });
+                }, { quoted: message });
             }
         }
     )

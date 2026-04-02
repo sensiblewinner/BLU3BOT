@@ -27,10 +27,10 @@ module.exports = {
             const enhanceUrl = `https://bk9.fun/tools/enhance?url=${encodeURIComponent(imageUrl)}`;
 
             try {
-                await reply({
+                await Blu3Bot.sendMessage(from, {
                     image: { url: enhanceUrl },
-                    caption: '*Enhanced by Blu3Bot*'
-                });
+                    caption: '*✨ Enhanced by Blu3Bot*'
+                }, { quoted: message });
             } catch (error) {
                 console.error("Enhance error:", error.message || error);
                 await reply('⚠️ Failed to enhance the image. Please check the URL and try again.');

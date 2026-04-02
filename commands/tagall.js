@@ -33,10 +33,10 @@ module.exports = {
                     mentionText += `${i + 1}. @${p.id.split('@')[0]}\n`;
                 });
 
-                await reply({
+                await Blu3Bot.sendMessage(from, {
                     text: mentionText,
                     mentions: participants.map(p => p.id)
-                });
+                }, { quoted: message });
 
             } catch (error) {
                 await reply('❌ Something went wrong while tagging everyone.');

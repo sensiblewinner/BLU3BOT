@@ -52,16 +52,16 @@ module.exports = {
                 for (const story of stories) {
                     if (story.url) {
                         if (story.type.includes("image")) {
-                            await reply({
+                            await Blu3Bot.sendMessage(from, {
                                 image: { url: story.url },
                                 caption: `📷 Instagram Story - @${username}`
-                            });
+                            }, { quoted: message });
                             mediaSent++;
                         } else if (story.type.includes("video")) {
-                            await reply({
+                            await Blu3Bot.sendMessage(from, {
                                 video: { url: story.url },
                                 caption: `🎥 Instagram Story - @${username}`
-                            });
+                            }, { quoted: message });
                             mediaSent++;
                         }
                     }

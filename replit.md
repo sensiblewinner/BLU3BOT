@@ -51,3 +51,20 @@ Environment variables (via `.env` or Replit Secrets):
 ## Session Management
 
 WhatsApp session data is stored in the `./session/` directory (excluded from git). If the bot is logged out, the session folder is cleared automatically and a new QR code is generated.
+
+## Command Status & Bug Fixes
+
+All 84 commands load and run cleanly. Key fixes applied across two rounds of audit:
+
+### Core Bug (fixed in all affected commands)
+`reply()` is text-only — it calls `Blu3Bot.sendMessage(from, { text }, { quoted })`. Any command sending images, videos, audio, polls, or mentions-with-text was patched to call `Blu3Bot.sendMessage(from, { ... }, { quoted: message })` directly.
+
+Fixed files: `download.js`, `aiimg.js`, `enhance.js`, `comics.js`, `gay.js`, `screenshot.js`, `shazam.js`, `poll.js`, `report.js`, `getprofile.js`, `block.js`, `kick.js`, `instastory.js`, `spotify.js`, `tagall.js`
+
+### Individual Fixes
+- `ping.js` — `{ping}` template literal was not substituted; replaced with `${latency}`, and also shows RAM & uptime
+- `news.js` — fake newsapi.org key removed; now uses BBC RSS via rss2json with Hacker News fallback (both free, no key needed)
+- `dalle.js` — fake Pexels key removed; now uses Pollinations.ai (completely free, no key, generates real AI images)
+- `catbox.js` — placeholder stub replaced with real Catbox.moe upload using multipart form upload
+- `music.js` — placeholder stub replaced with real YouTube search via `yt-search`
+- `chat.js` — hardcoded random responses replaced with real free AI API calls with conversation history

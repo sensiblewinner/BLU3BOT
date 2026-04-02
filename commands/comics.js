@@ -37,11 +37,10 @@ module.exports = {
                     message: quoted
                 });
 
-                // Return original image with comic caption
-                await reply({
+                await Blu3Bot.sendMessage(from, {
                     image: buffer,
                     caption: '*🖼️ Comic Style Applied!*\n\n*Powered by Blu3Bot*'
-                });
+                }, { quoted: message });
             } catch (error) {
                 await reply('❌ Failed to convert to comic style.');
             }

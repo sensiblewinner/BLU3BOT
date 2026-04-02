@@ -79,10 +79,10 @@ module.exports = {
                     const video = search.videos[0];
 
                     if (video) {
-                        await reply({
+                        await Blu3Bot.sendMessage(from, {
                             image: { url: video.thumbnail },
                             caption: `*🎶 Song Found!*\n\n*Title:* ${video.title}\n*Artist:* ${video.author.name}\n*Duration:* ${video.timestamp}\n\n*Listen:* ${video.url}\n\n*Powered by Blu3Bot*`
-                        });
+                        }, { quoted: message });
                     } else {
                         await reply('❌ No song found. Try describing it differently or use: .play [song name]');
                     }

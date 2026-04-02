@@ -30,10 +30,10 @@ module.exports = {
             if (!global.blockedUsers) global.blockedUsers = new Set();
             global.blockedUsers.add(target);
             
-            await reply({
+            await Blu3Bot.sendMessage(from, {
                 text: `✅ @${target.split('@')[0]} has been blocked from using the bot.`,
                 mentions: [target]
-            });
+            }, { quoted: message });
         }
     ),
     ownerOnly: true

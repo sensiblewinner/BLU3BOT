@@ -31,10 +31,10 @@ module.exports = {
             const groupInfo = await Blu3Bot.groupMetadata(from);
             const admins = groupInfo.participants.filter(p => p.admin).map(p => p.id);
 
-            await reply({
+            await Blu3Bot.sendMessage(from, {
                 text: `🚨 *USER REPORTED*\n\nReported: @${target.split('@')[0]}\nReason: ${reason}\nReporter: @${context.sender.split('@')[0]}\n\nAdmins have been notified.`,
                 mentions: [target, context.sender, ...admins]
-            });
+            }, { quoted: message });
         }
     ),
     groupOnly: true

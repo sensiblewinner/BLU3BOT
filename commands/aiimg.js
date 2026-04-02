@@ -37,11 +37,10 @@ module.exports = {
                     message: quoted
                 });
 
-                // Return enhanced version (for now same image)
-                await reply({
+                await Blu3Bot.sendMessage(from, {
                     image: buffer,
                     caption: '*✨ Enhanced Image*\n\n*Powered by Blu3Bot*'
-                });
+                }, { quoted: message });
             } catch (error) {
                 await reply('❌ Failed to enhance image.');
             }
