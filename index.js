@@ -197,6 +197,7 @@ async function runCommand(text, sock, msg) {
 // 📡 CONNECTION HANDLERS
 // ==============================
 async function onConnected(sock) {
+    RECONNECT_ATTEMPTS = 0; // reset counter on every successful connection
     const time = moment().format('HH:mm:ss');
     const cmdCount = commandHandler.getCommandCount();
 
