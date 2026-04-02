@@ -9,14 +9,6 @@ class CommandHandler {
         this.categories = new Map();
         this.cooldowns = new Map();
         this.loadedCount = 0;
-        this.owners = [
-            '254745469050@s.whatsapp.net',
-            '254745469050@c.us',
-            '254745469050',
-            '254745469050:0@s.whatsapp.net', 
-            '236159347195979@lid',
-            '236159347195979'
-        ];
     }
 
     // Load all commands from commands folder
@@ -147,7 +139,7 @@ class CommandHandler {
 
         // ✅ PERMANENT FIX - OWNER CHECK THAT ALWAYS WORKS
         if (command.ownerOnly) {
-            const isOwner = this.isOwner(sender);
+            const isOwner = this.isOwner(sender, config);
             console.log(`🔐 Owner check for ${command.name}: ${isOwner}`);
             
             if (!isOwner) {
@@ -176,27 +168,31 @@ class CommandHandler {
         }
     }
 
-    // ✅ PERMANENT FIX - BULLETPROOF OWNER CHECK
-    isOwner(sender) {
+    // ✅ BULLETPROOF OWNER CHECK — reads OWNER_NUMBER from runtime config
+    isOwner(sender, config) {
         if (!sender) {
             console.log('❌ Owner check: No sender provided');
             return false;
         }
-        
-        console.log(`🔍 Owner Check - Input: ${sender}`);
-        
-        // SIMPLE BULLETPROOF CHECK - Just look for your numbers
-        const isOwner = sender.includes('254745469050') || sender.includes('236159347195979');
-        
-        console.log(`🔐 Owner Check Result: ${isOwner}`);
-        
-        // 🚨 TEMPORARY OVERRIDE - REMOVE AFTER TESTING
-        if (!isOwner) {
-            console.log('🚨 TEMPORARY OVERRIDE: Allowing access for testing');
-            console.log('💡 Your sender format:', sender);
-            return true; // REMOVE THIS LINE AFTER CONFIRMING IT WORKS
-        }
-        
+
+        console.log(`🔍 Owner Check - Sender: ${sender}`);
+
+        // Extract the raw number from config (strip @s.whatsapp.net if present)
+        const ownerFromConfig = (config?.OWNER_NUMBER || '')
+            .replace('@s.whatsapp.net', '')
+            .replace('@c.us', '')
+            .trim();
+
+        // Normalize sender the same way
+        const senderNorm = sender
+            .replace('@s.whatsapp.net', '')
+            .replace('@c.us', '')
+            .split(':')[0]
+            .trim();
+
+        const isOwner = senderNorm === ownerFromConfig || senderNorm.includes(ownerFromConfig);
+
+        console.log(`🔐 Owner Check — Sender: ${senderNorm} | Owner: ${ownerFromConfig} | Result: ${isOwner}`);
         return isOwner;
     }
 
