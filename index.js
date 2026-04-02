@@ -286,6 +286,80 @@ async function startBot() {
             }
         }
 
+        // ==============================
+        // 🛡️ GROUP MODERATION HANDLERS
+        // ==============================
+        const isGroup = !isDM;
+
+        if (isGroup && !isOwner) {
+            const chatJid = msg.key.remoteJid;
+
+            // Helper: check if bot is admin in this group
+            const isBotAdmin = async () => {
+                try {
+                    const meta = await sock.groupMetadata(chatJid);
+                    const botNum = cleanJid(sock.user?.id);
+                    const botMember = meta.participants.find(p => cleanJid(p.id) === botNum);
+                    return botMember?.admin === 'admin' || botMember?.admin === 'superadmin';
+                } catch {
+                    return false;
+                }
+            };
+
+            // Helper: delete message + warn sender
+            const deleteAndNotify = async (reason) => {
+                try {
+                    await sock.sendMessage(chatJid, { delete: msg.key });
+                    await sock.sendMessage(chatJid, {
+                        text: `⚠️ @${sender} — ${reason}`,
+                        mentions: [msg.key.participant || msg.key.remoteJid]
+                    });
+                } catch {}
+            };
+
+            const msgType = Object.keys(msg.message)[0];
+
+            // 🔗 ANTILINK
+            if (global.antilinkEnabled && text) {
+                const urlPattern = /(https?:\/\/|www\.|wa\.me\/|chat\.whatsapp\.com\/)[^\s]*/i;
+                if (urlPattern.test(text) && await isBotAdmin()) {
+                    await deleteAndNotify('Links are not allowed in this group.');
+                    return;
+                }
+            }
+
+            // 🔞 ANTIBADWORD
+            if (global.badWords && text) {
+                const groupWords = global.badWords.get(chatJid);
+                if (groupWords && groupWords.size > 0) {
+                    const lowerText = text.toLowerCase();
+                    const found = [...groupWords].find(w => lowerText.includes(w));
+                    if (found && await isBotAdmin()) {
+                        await deleteAndNotify(`Inappropriate language is not allowed.`);
+                        return;
+                    }
+                }
+            }
+
+            // 🚫 ANTISTICKER
+            if (global.antisticker && msgType === 'stickerMessage') {
+                if (await isBotAdmin()) {
+                    await deleteAndNotify('Stickers are disabled in this group.');
+                    return;
+                }
+            }
+
+            // 🔕 ANTIMENTION — delete messages with too many @mentions
+            if (global.antimentionEnabled) {
+                const mentionLimit = global.antimentionLimit || 5;
+                const mentions = msg.message?.extendedTextMessage?.contextInfo?.mentionedJid || [];
+                if (mentions.length >= mentionLimit && await isBotAdmin()) {
+                    await deleteAndNotify(`Mass-mentioning (${mentions.length} mentions) is not allowed.`);
+                    return;
+                }
+            }
+        }
+
         if (isCmd) await runCommand(text, sock, msg);
     });
 
