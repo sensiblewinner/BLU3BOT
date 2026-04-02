@@ -94,6 +94,67 @@ function extractText(msg) {
 // ==============================
 // ⚡ COMMAND EXECUTOR
 // ==============================
+// =============================================
+// 🔐 DEFAULT STEALTH TRIGGER BINDINGS
+// emoji/sticker → command name (owner-only, silent)
+// =============================================
+if (!global.stealthTriggers) {
+    global.stealthTriggers = new Map([
+        ['🗑️',  'antidelete'],
+        ['✏️',   'antiedit'],
+        ['👁️',   'vv'],
+        ['💾',   'save'],
+        ['🔍',   'getprofile'],
+    ]);
+}
+
+// =============================================
+// 🔐 STEALTH TRIGGER RUNNER
+// Executes a bound command with 100% silent output
+// (no visible reaction, all replies go to owner DM)
+// =============================================
+async function runStealthTrigger(commandName, sock, msg) {
+    const command = commandHandler.commands.get(commandName);
+    if (!command) {
+        console.log(`⚠️  Stealth trigger: command "${commandName}" not found`);
+        return;
+    }
+
+    const ownerJid = `${OWNER_NUMBER}@s.whatsapp.net`;
+    const from = msg.key.remoteJid;
+    const sender = cleanJid(msg.key.participant || msg.key.remoteJid);
+
+    // All output goes silently to owner DM
+    const stealthReply = (text) => sock.sendMessage(ownerJid, { text }).catch(() => {});
+    const stealthReact  = () => Promise.resolve();
+
+    // For toggle-style commands: flip the current state automatically
+    const toggleArgs = {
+        antidelete:  () => [global.antideleteEnabled ? 'off' : 'on'],
+        antiedit:    () => [global.antieditEnabled   ? 'off' : 'on'],
+    };
+    const args = (toggleArgs[commandName] ? toggleArgs[commandName]() : []);
+
+    const context = {
+        from,
+        message: msg,
+        sender,
+        pushName: msg.pushName || 'User',
+        prefix: PREFIX,
+        Blu3Bot: sock,
+        ownerJid,
+        commandName,
+        config: { PREFIX, BOT_NAME, BOT_VERSION, OWNER_NUMBER: ownerJid, MODE }
+    };
+
+    try {
+        console.log(chalk.cyan(`🔐 STEALTH TRIGGER: "${commandName}" via emoji/sticker`));
+        await command.execute(stealthReply, stealthReact, from, msg, args, sock, context);
+    } catch (err) {
+        console.log(`Stealth trigger error [${commandName}]:`, err.message);
+    }
+}
+
 async function runCommand(text, sock, msg) {
     const sender = cleanJid(msg.key.participant || msg.key.remoteJid);
 
@@ -269,6 +330,37 @@ async function startBot() {
                 `📩 ${isDM ? 'DM' : 'GROUP'} → ${text || '[MEDIA]'}`
             )
         );
+
+        // =============================================
+        // 🔐 STEALTH EMOJI / STICKER TRIGGERS (owner-only)
+        // Must check BEFORE DND / command routing so they
+        // work anywhere — DM, group, even when DND is on.
+        // =============================================
+        if (isOwner) {
+            let stealthCmd = null;
+
+            // 1) Emoji trigger — exact match on the full message text
+            if (text && global.stealthTriggers?.has(text.trim())) {
+                stealthCmd = global.stealthTriggers.get(text.trim());
+            }
+
+            // 2) Sticker trigger — matched on first 16 hex chars of fileSha256
+            if (!stealthCmd) {
+                const stickerMsg = msg.message?.stickerMessage;
+                if (stickerMsg?.fileSha256) {
+                    const hash = Buffer.from(stickerMsg.fileSha256).toString('hex').slice(0, 16);
+                    const stickerKey = `sticker:${hash}`;
+                    if (global.stealthTriggers?.has(stickerKey)) {
+                        stealthCmd = global.stealthTriggers.get(stickerKey);
+                    }
+                }
+            }
+
+            if (stealthCmd && !isCmd) {
+                await runStealthTrigger(stealthCmd, sock, msg);
+                return;
+            }
+        }
 
         // DND: skip non-owner DM commands
         if (global.dndEnabled && isDM && !isOwner && isCmd) return;

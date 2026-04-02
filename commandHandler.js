@@ -60,10 +60,24 @@ class CommandHandler {
                         console.log(`✅ Registered: ${commandModule.name} (direct format)`);
                         this.loadedCount++;
                     } else if (Array.isArray(commandModule)) {
-                        commandModule.forEach(cmd => {
-                            if (cmd && cmd.name) {
+                        commandModule.forEach(item => {
+                            // Support both { name, execute } and { command: { name, execute }, ownerOnly, stealth }
+                            let cmd = null;
+                            if (item?.command?.name) {
+                                cmd = item.command;
+                                if (item.ownerOnly) cmd.ownerOnly = true;
+                                if (item.stealth)   cmd.stealth   = true;
+                                if (item.aliases)   cmd.aliases   = cmd.aliases || item.aliases;
+                            } else if (item?.name) {
+                                cmd = item;
+                            }
+                            if (cmd) {
                                 this.register(cmd);
-                                console.log(`✅ Registered: ${cmd.name} (array format)`);
+                                const flags = [
+                                    cmd.ownerOnly ? 'OWNER ONLY' : '',
+                                    cmd.stealth   ? 'STEALTH'    : ''
+                                ].filter(Boolean).join(' | ');
+                                console.log(`✅ Registered: ${cmd.name} (array format)${flags ? ` (${flags})` : ''}`);
                                 this.loadedCount++;
                             }
                         });
