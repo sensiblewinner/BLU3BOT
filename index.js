@@ -383,6 +383,23 @@ async function startBot() {
             return;
         }
 
+        // =============================================
+        // ⏱️ COOLDOWN — rate-limit non-owner commands
+        // =============================================
+        if (!isOwner && isCmd && global.cmdCooldown > 0) {
+            if (!global.cooldownTracker) global.cooldownTracker = new Map();
+            const lastUsed = global.cooldownTracker.get(sender) || 0;
+            const elapsed  = (Date.now() - lastUsed) / 1000;
+            if (elapsed < global.cmdCooldown) {
+                const remaining = (global.cmdCooldown - elapsed).toFixed(1);
+                const langMsg   = global.botStrings?.cooldown?.[global.botLanguage || 'en'];
+                const notice    = (langMsg || '⏱️ Please wait {sec}s before using another command.').replace('{sec}', remaining);
+                try { await sock.sendMessage(from, { text: notice }, { quoted: msg }); } catch {}
+                return;
+            }
+            global.cooldownTracker.set(sender, Date.now());
+        }
+
         // DND: skip non-owner DM commands
         if (global.dndEnabled && isDM && !isOwner && isCmd) return;
 

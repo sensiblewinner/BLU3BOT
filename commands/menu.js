@@ -249,7 +249,9 @@ module.exports = {
                 return;
             }
 
-            const styleKey = (args[0] || '1').toLowerCase();
+            // Use global default theme if no argument, otherwise '1'
+            const defaultStyle = String(global.defaultMenuStyle || '1');
+            const styleKey = (args[0] || defaultStyle).toLowerCase();
 
             // Show help if they ask
             if (styleKey === 'help' || styleKey === 'styles') {
