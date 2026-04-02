@@ -116,5 +116,5 @@ module.exports = {
             }
         }
     ),
-    aliases: ['song', 'mp3', 'audio', 'yta']
+    aliases: ['mp3', 'audio', 'yta']
 };

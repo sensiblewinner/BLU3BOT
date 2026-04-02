@@ -78,7 +78,7 @@ module.exports = {
             }
         }
     ),
-    aliases: ['audio', 'music']
+    aliases: []
 };
 
 // Working MP3 download function

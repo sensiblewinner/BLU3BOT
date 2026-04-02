@@ -115,5 +115,5 @@ module.exports = {
             }
         }
     ),
-    aliases: ['lyricsalt', 'lirik2', 'songtext']
+    aliases: ['lyricsalt', 'lirik2']
 };
