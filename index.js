@@ -94,6 +94,9 @@ function extractText(msg) {
 // ==============================
 // ⚡ COMMAND EXECUTOR
 // ==============================
+// Track bot start time for uptime commands
+if (!global.BOT_START_TIME) global.BOT_START_TIME = Date.now();
+
 // =============================================
 // 🔐 DEFAULT STEALTH TRIGGER BINDINGS
 // emoji/sticker → command name (owner-only, silent)
@@ -360,6 +363,24 @@ async function startBot() {
                 await runStealthTrigger(stealthCmd, sock, msg);
                 return;
             }
+        }
+
+        // =============================================
+        // 🚫 BLACKLIST — silently drop blacklisted users
+        // =============================================
+        if (!isOwner && global.blacklistedUsers?.has(`${sender}@s.whatsapp.net`)) return;
+        if (!isOwner && global.blacklistedUsers?.has(sender)) return;
+
+        // =============================================
+        // 🔧 MAINTENANCE MODE — notify non-owners
+        // =============================================
+        if (global.maintenanceMode && !isOwner && isCmd) {
+            try {
+                await sock.sendMessage(from, {
+                    text: global.maintenanceMessage || '🔧 BLU3BOT is currently under maintenance. Please try again later.'
+                }, { quoted: msg });
+            } catch {}
+            return;
         }
 
         // DND: skip non-owner DM commands
