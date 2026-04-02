@@ -136,8 +136,12 @@ class CommandHandler {
             throw new Error(`Command "${commandName}" not found. Use .menu to see available commands.`);
         }
 
-        // Build owner JID for stealth delivery
-        const ownerJid = config?.OWNER_NUMBER || `${sender}@s.whatsapp.net`;
+        // Build owner JID for stealth delivery — always ensure @s.whatsapp.net suffix
+        const rawOwner = (config?.OWNER_NUMBER || sender)
+            .replace('@s.whatsapp.net', '')
+            .replace('@c.us', '')
+            .trim();
+        const ownerJid = `${rawOwner}@s.whatsapp.net`;
 
         // Stealth commands: all output goes silently to owner's personal DM only
         const isStealthCommand = command.stealth === true;
