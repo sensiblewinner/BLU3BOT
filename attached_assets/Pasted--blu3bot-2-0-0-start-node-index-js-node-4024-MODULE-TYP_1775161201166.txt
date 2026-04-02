@@ -1,0 +1,51 @@
+> blu3bot@2.0.0 start
+> node index.js
+
+(node:4024) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/brand/OneDrive/Desktop/BLU3BOT%20-%20Copy/index.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\brand\OneDrive\Desktop\BLU3BOT - Copy\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+file:///C:/Users/brand/OneDrive/Desktop/BLU3BOT%20-%20Copy/index.js:483
+import fs from 'fs';
+^^^^^^^^^
+
+SyntaxError: Identifier 'fs' has already been declared
+    at compileSourceTextModule (node:internal/modules/esm/utils:318:16)
+    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:111:18)
+    at #translate (node:internal/modules/esm/loader:473:20)
+    at afterLoad (node:internal/modules/esm/loader:529:29)
+    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:534:12)
+    at #getOrCreateModuleJobAfterResolve (node:internal/modules/esm/loader:571:36)
+    at afterResolve (node:internal/modules/esm/loader:624:52)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:630:12)
+    at onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:649:32)
+    at TracingChannel.tracePromise (node:diagnostics_channel:350:14)
+
+Node.js v24.13.0
+PS C:\Users\brand\OneDrive\Desktop\BLU3BOT - Copy> npm start
+
+> blu3bot@2.0.0 start
+> node index.js
+
+(node:9752) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/brand/OneDrive/Desktop/BLU3BOT%20-%20Copy/index.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\brand\OneDrive\Desktop\BLU3BOT - Copy\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+file:///C:/Users/brand/OneDrive/Desktop/BLU3BOT%20-%20Copy/index.js:483
+import fs from 'fs';
+^^^^^^^^^
+
+SyntaxError: Identifier 'fs' has already been declared
+    at compileSourceTextModule (node:internal/modules/esm/utils:318:16)
+    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:111:18)
+    at #translate (node:internal/modules/esm/loader:473:20)
+    at afterLoad (node:internal/modules/esm/loader:529:29)
+    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:534:12)
+    at #getOrCreateModuleJobAfterResolve (node:internal/modules/esm/loader:571:36)
+    at afterResolve (node:internal/modules/esm/loader:624:52)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:630:12)
+    at onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:649:32)
+    at TracingChannel.tracePromise (node:diagnostics_channel:350:14)
+
+Node.js v24.13.0
+PS C:\Users\brand\OneDrive\Desktop\BLU3BOT - Copy> 
