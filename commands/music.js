@@ -45,7 +45,7 @@ module.exports = {
                         `⏱️ *Duration:* ${video.timestamp}\n` +
                         `👀 *Views:* ${video.views?.toLocaleString() || 'N/A'}\n` +
                         `🔗 *URL:* ${video.url}\n\n` +
-                        `💡 *Tip:* Use *.song ${query}* to download this track\n\n` +
+                        `💡 *Tip:* Use *.play ${query}* to download this track\n\n` +
                         `*Powered by Blu3Bot*`
                 }, { quoted: message });
 

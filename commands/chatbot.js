@@ -20,18 +20,12 @@ module.exports = {
         async (reply, react, from, message, args, Blu3Bot, context) => {
             await react('🤖');
             
-            // FIXED: Proper owner check
-            const ownerNumber = '254745469050'; // Your number without @c.us
-            const senderNumber = context.sender?.replace('@c.us', '') || context.sender;
-            
-            console.log('🔍 Owner check:', {
-                sender: context.sender,
-                senderNumber: senderNumber,
-                ownerNumber: ownerNumber,
-                isOwner: senderNumber === ownerNumber
-            });
+            const ownerRaw = (context.config?.OWNER_NUMBER || '')
+                .replace('@s.whatsapp.net', '').replace('@c.us', '').trim();
+            const senderRaw = (context.sender || '')
+                .replace('@s.whatsapp.net', '').replace('@c.us', '').split(':')[0].trim();
 
-            if (senderNumber !== ownerNumber) {
+            if (senderRaw !== ownerRaw) {
                 await reply('❌ Owner only command!');
                 return;
             }
