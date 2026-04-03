@@ -321,13 +321,21 @@ async function startBot() {
             }
         }
 
-        if (msg.key.fromMe) return;
+        // Skip own messages UNLESS the owner typed a command from their phone
+        if (msg.key.fromMe) {
+            const selfText = extractText(msg);
+            if (!selfText?.startsWith(PREFIX)) return;
+            // Owner sent a command — fall through and process it
+        }
 
-        const from  = msg.key.remoteJid;
-        const text  = extractText(msg);
-        const isCmd = text.startsWith(PREFIX);
-        const isDM  = !from.endsWith('@g.us');
-        const sender  = cleanJid(msg.key.participant || from);
+        const from    = msg.key.remoteJid;
+        const text    = extractText(msg);
+        const isCmd   = text.startsWith(PREFIX);
+        const isDM    = !from.endsWith('@g.us');
+        // When fromMe=true the sender IS the owner (their own phone)
+        const sender  = msg.key.fromMe
+            ? OWNER_NUMBER
+            : cleanJid(msg.key.participant || from);
         const isOwner = sender.includes(OWNER_NUMBER);
 
         console.log(
