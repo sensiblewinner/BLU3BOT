@@ -53,9 +53,9 @@ module.exports = {
                     if (data.status && data.result) {
                         // Find the most relevant music result
                         const musicResults = data.result.filter(item => 
-                            item.title.toLowerCase().includes('lyrics') || 
-                            item.title.toLowerCase().includes('song') ||
-                            item.description.toLowerCase().includes('lyrics')
+                            item.title?.toLowerCase().includes('lyrics') || 
+                            item.title?.toLowerCase().includes('song') ||
+                            item.description?.toLowerCase().includes('lyrics')
                         );
 
                         if (musicResults.length > 0) {

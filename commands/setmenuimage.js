@@ -22,13 +22,6 @@ module.exports = {
         async (reply, react, from, message, args, Blu3Bot, context) => {
             await react('🖼️');
             
-            // Check if user is bot owner
-            const isOwner = context.sender === '254745469050@s.whatsapp.net';
-            if (!isOwner) {
-                await reply('❌ This command is only available for bot owner!');
-                return;
-            }
-
             // Check if URL is provided
             if (!args || args.length === 0) {
                 await reply(`🖼️ *Set Menu Image*\n\nUsage: ${context.prefix}setmenuimage <image_url>\n\nExample: ${context.prefix}setmenuimage https://i.ibb.co/abc123/image.jpg`);

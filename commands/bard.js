@@ -25,14 +25,17 @@ module.exports = {
                 }
 
                 const prompt = args.join(' ');
-                const response = await fetch(`https://api.diioffc.web.id/api/ai/bard?query=${encodeURIComponent(prompt)}`);
+                const response = await fetch(`https://api.diioffc.web.id/api/ai/bard?query=${encodeURIComponent(prompt)}`, {
+                    headers: { 'User-Agent': 'Mozilla/5.0' }
+                });
+                if (!response.ok) throw new Error(`API returned ${response.status}`);
                 const data = await response.json();
 
-                if (data.status && data.result && data.result.message) {
-                    const answer = data.result.message;
-                    await reply(`${answer}\n\n> *Powered by Blu3Bot*`);
+                const answer = data?.result?.message || data?.result || data?.message || data?.response;
+                if (answer && typeof answer === 'string' && answer.trim()) {
+                    await reply(`${answer.trim()}\n\n> *Powered by Blu3Bot*`);
                 } else {
-                    throw new Error('Invalid response from the API.');
+                    throw new Error('Empty response from API.');
                 }
 
             } catch (error) {

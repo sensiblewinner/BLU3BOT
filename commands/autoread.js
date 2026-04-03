@@ -19,13 +19,6 @@ module.exports = {
         '.autoread [on/off]',
         'settings',
         async (reply, react, from, message, args, Blu3Bot, context) => {
-            const isOwner = context.sender === '254745469050@s.whatsapp.net' || context.sender === '236159347195979@lid';
-            
-            if (!isOwner) {
-                await react("❌");
-                return reply("❌ This command is for bot owner only!");
-            }
-
             const action = args[0]?.toLowerCase();
             
             if (action === 'on' || action === 'enable' || action === 'true') {
