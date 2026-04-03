@@ -1,4 +1,6 @@
 // commands/aiimg.js - FIXED
+const { downloadMediaMessage } = require('@whiskeysockets/baileys');
+
 class Command {
     constructor(name, description, usage, category, execute) {
         this.name = name;
@@ -12,12 +14,12 @@ class Command {
 module.exports = {
     command: new Command(
         'aiimg',
-        'Enhance images with filters',
+        'Enhance images with AI filters',
         '.aiimg [reply to image]',
         'media',
         async (reply, react, from, message, args, Blu3Bot, context) => {
             await react('✨');
-            
+
             const quoted = message.message?.extendedTextMessage?.contextInfo?.quotedMessage;
             const imageMsg = quoted?.imageMessage;
 
@@ -27,22 +29,30 @@ module.exports = {
             }
 
             try {
-                const buffer = await Blu3Bot.downloadMediaMessage({
-                    key: {
-                        remoteJid: from,
-                        fromMe: false,
-                        id: message.message.extendedTextMessage.contextInfo.stanzaId,
-                        participant: message.message.extendedTextMessage.contextInfo.participant
+                const buffer = await downloadMediaMessage(
+                    {
+                        key: {
+                            remoteJid: from,
+                            fromMe: false,
+                            id: message.message.extendedTextMessage.contextInfo.stanzaId,
+                            participant: message.message.extendedTextMessage.contextInfo.participant
+                        },
+                        message: quoted
                     },
-                    message: quoted
-                });
+                    'buffer',
+                    {}
+                );
 
                 await Blu3Bot.sendMessage(from, {
                     image: buffer,
                     caption: '*✨ Enhanced Image*\n\n*Powered by Blu3Bot*'
                 }, { quoted: message });
+
+                await react('✅');
             } catch (error) {
+                console.error('aiimg error:', error.message);
                 await reply('❌ Failed to enhance image.');
+                await react('❌');
             }
         }
     )

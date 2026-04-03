@@ -1,4 +1,6 @@
-// commands/hidetag.js
+// commands/hidetag.js - FIXED
+const { downloadMediaMessage } = require('@whiskeysockets/baileys');
+
 class Command {
     constructor(name, description, usage, category, execute) {
         this.name = name;
@@ -17,7 +19,7 @@ module.exports = {
         'group',
         async (reply, react, from, message, args, Blu3Bot, context) => {
             await react('👥');
-            
+
             const metadata = await Blu3Bot.groupMetadata(from);
             const tagList = metadata.participants.map(p => p.id);
             const quoted = message.message?.extendedTextMessage?.contextInfo;
@@ -30,15 +32,19 @@ module.exports = {
 
                 switch (type) {
                     case 'imageMessage': {
-                        const buffer = await Blu3Bot.downloadMediaMessage({
-                            key: {
-                                remoteJid: from,
-                                fromMe: false,
-                                id: quoted.stanzaId,
-                                participant: quoted.participant
+                        const buffer = await downloadMediaMessage(
+                            {
+                                key: {
+                                    remoteJid: from,
+                                    fromMe: false,
+                                    id: quoted.stanzaId,
+                                    participant: quoted.participant
+                                },
+                                message: quotedMsg
                             },
-                            message: quotedMsg
-                        });
+                            'buffer',
+                            {}
+                        );
                         outMsg = {
                             image: buffer,
                             caption: quotedMsg.imageMessage.caption || '',
@@ -48,15 +54,19 @@ module.exports = {
                     }
 
                     case 'videoMessage': {
-                        const buffer = await Blu3Bot.downloadMediaMessage({
-                            key: {
-                                remoteJid: from,
-                                fromMe: false,
-                                id: quoted.stanzaId,
-                                participant: quoted.participant
+                        const buffer = await downloadMediaMessage(
+                            {
+                                key: {
+                                    remoteJid: from,
+                                    fromMe: false,
+                                    id: quoted.stanzaId,
+                                    participant: quoted.participant
+                                },
+                                message: quotedMsg
                             },
-                            message: quotedMsg
-                        });
+                            'buffer',
+                            {}
+                        );
                         outMsg = {
                             video: buffer,
                             caption: quotedMsg.videoMessage.caption || '',
@@ -66,15 +76,19 @@ module.exports = {
                     }
 
                     case 'audioMessage': {
-                        const buffer = await Blu3Bot.downloadMediaMessage({
-                            key: {
-                                remoteJid: from,
-                                fromMe: false,
-                                id: quoted.stanzaId,
-                                participant: quoted.participant
+                        const buffer = await downloadMediaMessage(
+                            {
+                                key: {
+                                    remoteJid: from,
+                                    fromMe: false,
+                                    id: quoted.stanzaId,
+                                    participant: quoted.participant
+                                },
+                                message: quotedMsg
                             },
-                            message: quotedMsg
-                        });
+                            'buffer',
+                            {}
+                        );
                         outMsg = {
                             audio: buffer,
                             mimetype: 'audio/mp4',
@@ -97,7 +111,7 @@ module.exports = {
                 }
             } else {
                 if (!args || !args.length) {
-                    await reply("❗ Please provide a message or reply to one to mention everyone.");
+                    await reply('❗ Please provide a message or reply to one to mention everyone.');
                     return;
                 }
                 outMsg = {
@@ -106,7 +120,7 @@ module.exports = {
                 };
             }
 
-            await reply(outMsg);
+            await Blu3Bot.sendMessage(from, outMsg, { quoted: message });
         }
     ),
     aliases: ['tag'],

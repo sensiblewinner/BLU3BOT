@@ -1,4 +1,6 @@
-// commands/setprofilepic.js
+// commands/setprofilepic.js - FIXED
+const { downloadMediaMessage } = require('@whiskeysockets/baileys');
+
 class Command {
     constructor(name, description, usage, category, execute) {
         this.name = name;
@@ -17,7 +19,7 @@ module.exports = {
         'owner',
         async (reply, react, from, message, args, Blu3Bot, context) => {
             await react('🖼️');
-            
+
             const quoted = message.message?.extendedTextMessage?.contextInfo?.quotedMessage;
             const imageMsg = quoted?.imageMessage;
 
@@ -27,20 +29,28 @@ module.exports = {
             }
 
             try {
-                const buffer = await Blu3Bot.downloadMediaMessage({
-                    key: {
-                        remoteJid: from,
-                        fromMe: false,
-                        id: message.message.extendedTextMessage.contextInfo.stanzaId,
-                        participant: message.message.extendedTextMessage.contextInfo.participant
+                const buffer = await downloadMediaMessage(
+                    {
+                        key: {
+                            remoteJid: from,
+                            fromMe: false,
+                            id: message.message.extendedTextMessage.contextInfo.stanzaId,
+                            participant: message.message.extendedTextMessage.contextInfo.participant
+                        },
+                        message: quoted
                     },
-                    message: quoted
-                });
+                    'buffer',
+                    {}
+                );
 
-                await Blu3Bot.updateProfilePicture(buffer);
+                const botJid = Blu3Bot.user?.id || Blu3Bot.authState?.creds?.me?.id;
+                await Blu3Bot.updateProfilePicture(botJid, buffer);
                 await reply('✅ Profile picture updated successfully!');
+                await react('✅');
             } catch (error) {
+                console.error('setprofilepic error:', error.message);
                 await reply('❌ Failed to update profile picture.');
+                await react('❌');
             }
         }
     ),
